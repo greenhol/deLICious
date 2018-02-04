@@ -1,0 +1,19 @@
+:host {
+    display: block;
+    position: relative;
+}
+
+.inputCanvasArea {
+    position: absolute;
+    border: 1px solid black;
+}
+
+.vectorFieldSvgArea {
+    position: absolute;
+    border: 5px dotted white;
+}
+
+.outputCanvasArea {
+    position: absolute;
+    border: 1px solid black;
+}

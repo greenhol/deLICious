@@ -6,5 +6,8 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'lic works!';
+  public showInput = true;
+  public showVectorField = true;
+  public showOutput = true;
+
 }

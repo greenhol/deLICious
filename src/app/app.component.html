@@ -1,3 +1,9 @@
-<h1>
-  {{title}}
-</h1>
+<lic-renderer [showInput]="showInput"
+              [showVectorField]="showVectorField"
+              [showOutput]="showOutput">
+</lic-renderer>
+<div class="optionsArea">
+    <div><input type="checkbox" [checked]="showInput" (change)="showInput = !showInput" />Show Input</div>
+    <div><input type="checkbox" [checked]="showVectorField" (change)="showVectorField = !showVectorField" />Show Vector Field</div>
+    <div><input type="checkbox" [checked]="showOutput" (change)="showOutput = !showOutput" />Show Output</div>
+</div>
