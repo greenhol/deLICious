@@ -198,13 +198,14 @@ export class RendererComponent implements OnInit {
     });
 
     timer(0).subscribe(() => {
-      this.calcLicNew();
+      this.calcLicByLength();
+      this.drawCanvas(this.outputCanvasArea, this.licData);
       this.showVectorField = false;
       this.showVectorFieldChange.emit(this.showVectorField);
     })
   }
 
-  private calcLic() {
+  private calcLicByPixel() {
     const l = 30;
     let intensity: number;
     let nextI: number;
@@ -212,21 +213,19 @@ export class RendererComponent implements OnInit {
     let nextArea: PointInPixel;
     let coord: MathCoordinate;;
     let v: Vector;
+    let rowCnt = 0;
+    let timeStamp = Date.now();
+    console.info('calculation started (type: PIXEL, l: ' + (2*l) + ')');
 
     for (let i = 0; i < HEIGHT; i++) {
       for (let j = 0; j < WIDTH; j++) {        
-
-        intensity = this.noise[i + BG_MARGIN][j + BG_MARGIN];
-        
+        intensity = this.noise[i + BG_MARGIN][j + BG_MARGIN];        
         nextI = i;
         nextJ = j;
-        
         coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
-        
         for (let i=0; i<l; i++) {
-
           switch (nextArea.border) {
             case Border.TOP:
               nextI--;
@@ -241,7 +240,6 @@ export class RendererComponent implements OnInit {
               nextJ++;
               break;
           }
-      
           intensity += this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN];
           coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
@@ -249,16 +247,13 @@ export class RendererComponent implements OnInit {
         }
 
         nextI = i;
-        nextJ = j;
-        
+        nextJ = j;        
         coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         v.x *= -1;
         v.y *= -1;
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
-        
         for (let i=0; i<l; i++) {
-
           switch (nextArea.border) {
             case Border.TOP:
               nextI--;
@@ -277,20 +272,27 @@ export class RendererComponent implements OnInit {
           intensity += this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN];
           coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
+          v.x *= -1;
+          v.y *= -1;
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
         }
 
         intensity /= (2 * l + 1);
         this.licData[i][j] = intensity;
       }
+      if (rowCnt > 49) {
+        console.info('calculating: ' + Math.round(100 * i / HEIGHT) + '%');
+        rowCnt = 0;
+      }
+      rowCnt++;
     }
-
-    this.drawCanvas(this.outputCanvasArea, this.licData);
+    console.info('calculation done in ' + (Date.now() - timeStamp)/1000 + 's');
   }
 
-  private calcLicNew() {
+  private calcLicByLength() {
     const l = 30/Math.SQRT2;
     let intensity: number;
+    let factor: number;
     let nextI: number;
     let nextJ: number;
     let restDistance: number;
@@ -299,19 +301,19 @@ export class RendererComponent implements OnInit {
     let v: Vector;
     let rowCnt = 0;
     let timeStamp = Date.now();
+    console.info('calculation started (type: LENGTH, l: ' + (2*l) + ')');
 
     for (let i = 0; i < HEIGHT; i++) {
       for (let j = 0; j < WIDTH; j++) {        
-        
         nextI = i;
         nextJ = j;
-        
+        restDistance = l;        
         coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
-        intensity = this.noise[i + BG_MARGIN][j + BG_MARGIN] * nextArea.distance;
+        factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
+        intensity = this.noise[i + BG_MARGIN][j + BG_MARGIN] * factor;
         restDistance = l - nextArea.distance;
-        
         while (restDistance > 0) {
           switch (nextArea.border) {
             case Border.TOP:
@@ -331,21 +333,22 @@ export class RendererComponent implements OnInit {
           coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
-          intensity += (this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN]) * nextArea.distance;
+          factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
+          intensity += (this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN]) * factor;
           restDistance -= nextArea.distance;
         }
 
         nextI = i;
         nextJ = j;
-        
+        restDistance = l;
         coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         v.x *= -1;
         v.y *= -1;
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
-        intensity += this.noise[i + BG_MARGIN][j + BG_MARGIN] * nextArea.distance;
+        factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
+        intensity += this.noise[i + BG_MARGIN][j + BG_MARGIN] * factor;
         restDistance = l - nextArea.distance;
-        
         while (restDistance > 0) {
           switch (nextArea.border) {
             case Border.TOP:
@@ -364,14 +367,17 @@ export class RendererComponent implements OnInit {
       
           coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
+          v.x *= -1;
+          v.y *= -1;
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
-          intensity += (this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN]) * nextArea.distance;
+          factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
+          intensity += (this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN]) * factor;
           restDistance -= nextArea.distance;
         }
 
-        intensity = Math.round(intensity / ((2 * l) + 1));
+        intensity = Math.round(intensity / (2*l));
         if (intensity > 255) intensity = 255;
-        this.licData[i][j] = Math.round(intensity);
+        this.licData[i][j] = intensity;
       }
       if (rowCnt > 49) {
         console.info('calculating: ' + Math.round(100 * i / HEIGHT) + '%');
@@ -379,9 +385,7 @@ export class RendererComponent implements OnInit {
       }
       rowCnt++;
     }
-
     console.info('calculation done in ' + (Date.now() - timeStamp)/1000 + 's');
-    this.drawCanvas(this.outputCanvasArea, this.licData);
   }
 
   private getNextArea(s: MathCoordinate, v: Vector): PointInPixel {
