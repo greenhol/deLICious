@@ -14,4 +14,4 @@ This is an [angular](https://angular.io/) App for the purpose of visualizing vec
 
 ## Samples
 
-![](./Screenshot_01.gif "DeLICious")
+![](./Screenshot_01.png "DeLICious")
