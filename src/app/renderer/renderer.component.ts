@@ -2,8 +2,9 @@ import { ElementRef, ViewChild, Input, Output, EventEmitter, Component, AfterVie
 import { D3Service, D3, Selection } from 'd3-ng2-service';
 import { saveAs } from 'file-saver';
 import { timer } from 'rxjs/observable/timer';
+import { MathCoordinate, Vector, Field } from './../data/field';
+import { ColorMap, Color } from './../data/color-map';
 // import { noise } from './noise';
-import { MathCoordinate, Vector, Field } from 'app/data/field';
 
 enum Border {
   TOP = 'Top',
@@ -65,7 +66,7 @@ export class RendererComponent implements AfterViewInit {
     let coord = this.pixelToMath({top: e.offsetY, left: e.offsetX});
     console.log('math coord: x: ', coord.x + ', y: ' + coord.y);
     let v = this.field.getVector(coord);
-    console.log('vector: ', v.value);
+    console.log('vector: ', v);
 
     // const pixel = RendererComponent.mathToPixel(coord);
     // console.log('pixel coord: left: ', pixel.left + ', top: ' + pixel.top);
@@ -103,7 +104,8 @@ export class RendererComponent implements AfterViewInit {
 
   private someCoords: MathCoordinate[] = [];
   private noise: number[][] = [];
-  private licData: number[][] = [];
+  private licData: Color[][] = [];
+  private colorMap: ColorMap;
 
   constructor(d3Service: D3Service, private hostElement: ElementRef) {
     this.d3 = d3Service.getD3();
@@ -138,6 +140,15 @@ export class RendererComponent implements AfterViewInit {
         this.someCoords.push({x: x, y: y});
       }  
     }
+    // Color Map
+    this.colorMap = new ColorMap({
+      minValue: -2,
+      maxValue: 10,
+      colorSteps: [
+        '#00FF00',
+        '#FF4400'
+      ]
+    });
     // inputCanvasArea
     this.inputCanvasArea.nativeElement.width = this.DIM.bgWidth;
     this.inputCanvasArea.nativeElement.height = this.DIM.bgHeight;
@@ -180,27 +191,34 @@ export class RendererComponent implements AfterViewInit {
   }
 
   private drawInit(): void {
-
+    const drawNoise: Color[][] = [];
     for (let y = 0; y < this.DIM.bgHeight; y++) {
       const row: number[] = [];
+      const rowDraw: Color[] = [];
       for (let x = 0; x < this.DIM.bgWidth; x++) {
         let intensity = Math.random();
-        // if (intensity > 0.1) intensity = 1;
-        // else intensity = 0;
+        if (intensity > 0.1) intensity = 1;
+        else intensity = 0;
         row.push(Math.round(intensity * 255));
+        rowDraw.push({
+          r: Math.round(intensity * 255),
+          g: Math.round(intensity * 255),
+          b: Math.round(intensity * 255)
+        })
       }
       this.noise.push(row);
+      drawNoise.push(rowDraw);
     }
     // this.noise = JSON.parse(noise);
 
     for (let y = 0; y < this.DIM.height; y++) {
-      const row: number[] = [];
+      const row: Color[] = [];
       for (let x = 0; x < this.DIM.width; x++) {
-        row.push(0);
+        row.push({r: 0, g: 0, b: 0});
       }
       this.licData.push(row);
     }
-    this.drawCanvas(this.inputCanvasArea, this.noise);
+    this.drawCanvas(this.inputCanvasArea, drawNoise);
 
     // Vectors
     this.someCoords.forEach((coord: MathCoordinate) => {
@@ -226,12 +244,17 @@ export class RendererComponent implements AfterViewInit {
         .attr('cy', p.top);
     });
 
+    // for (let x = 0; x < 10; x+=0.1) {
+    //   let c: Color = this.colorMap.getColor(x);
+    //   console.log(x.toFixed(1) + ', r: ' + c.r + ', g: ' + c.g + ', b: ' + c.b);
+    // }
+
     timer(0).subscribe(() => {
-      this.calcLicByPixel();
+      this.calcLicByLength();
       this.drawCanvas(this.outputCanvasArea, this.licData);
       this.showVectorField = false;
       this.showVectorFieldChange.emit(this.showVectorField);
-    })
+    });
   }
 
   private calcLicByPixel() {
@@ -242,6 +265,7 @@ export class RendererComponent implements AfterViewInit {
     let nextArea: PointInPixel;
     let coord: MathCoordinate;;
     let v: Vector;
+    let vColor: Color;
     let rowCnt = 0;
     let timeStamp = Date.now();
     console.info('calculation started (type: PIXEL, l: ' + (2*l) + ')');
@@ -253,6 +277,7 @@ export class RendererComponent implements AfterViewInit {
         nextJ = j;
         coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
+        vColor = this.colorMap.getColor(v.value);
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
         for (let i=0; i<l; i++) {
           switch (nextArea.border) {
@@ -305,9 +330,12 @@ export class RendererComponent implements AfterViewInit {
           v.vYn *= -1;
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
         }
-
         intensity /= (2 * l + 1);
-        this.licData[i][j] = intensity;
+        this.licData[i][j] = {
+          r: Math.floor(Math.sqrt(intensity * vColor.r)),
+          g: Math.floor(Math.sqrt(intensity * vColor.g)),
+          b: Math.floor(Math.sqrt(intensity * vColor.b))
+        };
       }
       if (rowCnt > 49) {
         console.info('calculating: ' + Math.round(100 * i / this.DIM.height) + '%');
@@ -328,6 +356,7 @@ export class RendererComponent implements AfterViewInit {
     let nextArea: PointInPixel;
     let coord: MathCoordinate;;
     let v: Vector;
+    let vColor: Color;
     let rowCnt = 0;
     let timeStamp = Date.now();
     console.info('calculation started (type: LENGTH, l: ' + (2*l) + ')');
@@ -339,6 +368,7 @@ export class RendererComponent implements AfterViewInit {
         restDistance = l;        
         coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
+        vColor = this.colorMap.getColor(v.value);
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
         factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
         intensity = this.noise[i + this.DIM.bgMargin][j + this.DIM.bgMargin] * factor;
@@ -406,7 +436,11 @@ export class RendererComponent implements AfterViewInit {
 
         intensity = Math.round(intensity / (2*l));
         if (intensity > 255) intensity = 255;
-        this.licData[i][j] = intensity;
+        this.licData[i][j] = {
+          r: Math.floor(Math.sqrt(intensity * vColor.r)),
+          g: Math.floor(Math.sqrt(intensity * vColor.g)),
+          b: Math.floor(Math.sqrt(intensity * vColor.b))
+        };
       }
       if (rowCnt > 49) {
         console.info('calculating: ' + Math.round(100 * i / this.DIM.height) + '%');
@@ -471,7 +505,7 @@ export class RendererComponent implements AfterViewInit {
     }
   }
 
-  private drawCanvas(canvas: ElementRef, data: number[][]): void {
+  private drawCanvas(canvas: ElementRef, data: Color[][]): void {
 
     const width = canvas.nativeElement.width;
     const height = canvas.nativeElement.height;
@@ -488,9 +522,9 @@ export class RendererComponent implements AfterViewInit {
         let value = data[i][j];
         uint32Array[i * this.DIM.bgWidth + j] = 
           (255 << 24) |       // alpha
-          (value << 16) |     // blue
-          (value << 8) |      // green
-          value;              // red
+          (value.b << 16) |     // blue
+          (value.g << 8) |      // green
+          value.r;              // red
       }
     }
 
