@@ -142,11 +142,27 @@ export class RendererComponent implements AfterViewInit {
     }
     // Color Map
     this.colorMap = new ColorMap({
-      minValue: -2,
-      maxValue: 10,
+      minValue: 0,
+      maxValue: 4,
       colorSteps: [
+        '#FFFFFF',
         '#00FF00',
-        '#FF4400'
+        '#11EE00',
+        '#22DD00',
+        '#33CC00',
+        '#44BB00',
+        '#55AA00',
+        '#669900',
+        '#778800',
+        '#887700',
+        '#996600',
+        '#AA5500',
+        '#BB4400',
+        '#CC3300',
+        '#DD2200',
+        '#EE1100',
+        '#FF0000',
+        '#660000'
       ]
     });
     // inputCanvasArea
@@ -197,7 +213,7 @@ export class RendererComponent implements AfterViewInit {
       const rowDraw: Color[] = [];
       for (let x = 0; x < this.DIM.bgWidth; x++) {
         let intensity = Math.random();
-        if (intensity > 0.1) intensity = 1;
+        if (intensity > 0.25) intensity = 1;
         else intensity = 0;
         row.push(Math.round(intensity * 255));
         rowDraw.push({
@@ -250,15 +266,14 @@ export class RendererComponent implements AfterViewInit {
     // }
 
     timer(0).subscribe(() => {
-      this.calcLicByLength();
+      this.calcLicByLength(30);
       this.drawCanvas(this.outputCanvasArea, this.licData);
       this.showVectorField = false;
       this.showVectorFieldChange.emit(this.showVectorField);
     });
   }
 
-  private calcLicByPixel() {
-    const l = 10;
+  private calcLicByPixel(l: number) {
     let intensity: number;
     let nextI: number;
     let nextJ: number;
@@ -332,9 +347,9 @@ export class RendererComponent implements AfterViewInit {
         }
         intensity /= (2 * l + 1);
         this.licData[i][j] = {
-          r: Math.floor(Math.sqrt(intensity * vColor.r)),
-          g: Math.floor(Math.sqrt(intensity * vColor.g)),
-          b: Math.floor(Math.sqrt(intensity * vColor.b))
+          r: Math.floor(intensity * vColor.r / 255),
+          g: Math.floor(intensity * vColor.g / 255),
+          b: Math.floor(intensity * vColor.b / 255)
         };
       }
       if (rowCnt > 49) {
@@ -346,8 +361,8 @@ export class RendererComponent implements AfterViewInit {
     console.info('calculation done in ' + (Date.now() - timeStamp)/1000 + 's');
   }
 
-  private calcLicByLength() {
-    const l = 20/Math.SQRT2;
+  private calcLicByLength(l: number) {
+    l = 50/Math.SQRT2;
     let intensity: number;
     let factor: number;
     let nextI: number;
@@ -437,9 +452,9 @@ export class RendererComponent implements AfterViewInit {
         intensity = Math.round(intensity / (2*l));
         if (intensity > 255) intensity = 255;
         this.licData[i][j] = {
-          r: Math.floor(Math.sqrt(intensity * vColor.r)),
-          g: Math.floor(Math.sqrt(intensity * vColor.g)),
-          b: Math.floor(Math.sqrt(intensity * vColor.b))
+          r: Math.floor(intensity * vColor.r / 255),
+          g: Math.floor(intensity * vColor.g / 255),
+          b: Math.floor(intensity * vColor.b / 255)
         };
       }
       if (rowCnt > 49) {

@@ -12,8 +12,8 @@ export class ChargeField extends Field {
     constructor() {
         super();
         this.charges = [
-            {coord: {x: -0.4, y: -0.1}, magnitude: 1},
-            {coord: {x: 0.4, y: 0.2}, magnitude: -1}
+            {coord: {x: -0.4, y: -0.1}, magnitude: 0.01},
+            {coord: {x: 0.4, y: 0.2}, magnitude: -0.01}
         ];
         // this.charges = [];
         // for (let i = 0; i <= 30; i++) {
@@ -22,7 +22,7 @@ export class ChargeField extends Field {
         //         x: -0.95 + 1.9 * Math.random(),
         //         y: -0.7 + 1.4 * Math.random()
         //       },
-        //       magnitude: -10 + 20 * Math.random()
+        //       magnitude: -0.01 + 0.02 * Math.random()
         //     });
         // }
     }
