@@ -1,5 +1,6 @@
-import { ElementRef, ViewChild, Input, Output, EventEmitter, Component, OnInit, RenderComponentType, HostListener } from '@angular/core';
+import { ElementRef, ViewChild, Input, Output, EventEmitter, Component, AfterViewInit, RenderComponentType, HostListener } from '@angular/core';
 import { D3Service, D3, Selection } from 'd3-ng2-service';
+import { saveAs } from 'file-saver';
 import { timer } from 'rxjs/observable/timer';
 // import { noise } from './noise';
 import { MathCoordinate, Vector, Field } from 'app/data/field';
@@ -23,45 +24,31 @@ interface PixelCoordinate {
   top: number;
 }
 
-const WIDTH = 800;
-const WIDTH_HALF = WIDTH / 2;
-const HEIGHT = 600;
-const HEIGHT_HALF = HEIGHT / 2;
-const RATIO = WIDTH / HEIGHT;
-
-const OUTPUT_BORDER_SIZE = 1;
-const BG_MARGIN = 100;
-const BG_WIDTH = WIDTH + 2 * BG_MARGIN;
-const BG_HEIGHT = HEIGHT + 2 * BG_MARGIN;
-
-const X_RANGE = 2;
-const X_RANGE_HALF = X_RANGE / 2;
-const MATH_PIXEL_RATIO = X_RANGE / WIDTH;
-const X_MIN = -X_RANGE / 2;
-const X_MAX = X_RANGE / 2;
-const Y_MIN = X_MIN / RATIO;
-const Y_MAX = X_MAX / RATIO;
+interface Dimensions {
+  width?:number;
+  widthHalf?:number;
+  height?:number;
+  heightHalf?:number;
+  ratio?:number;
+  outputBorderSize?:number;
+  bgMargin?:number;
+  bgWidth?:number;
+  bgHeight?:number;
+  xRange?:number;
+  xRangeHalf?:number;
+  mathPixelRatio?:number;
+  xMin?:number;
+  xMax?:number;
+  yMin?:number;
+  yMax?:number;
+}
 
 @Component({
   selector: 'lic-renderer',
   templateUrl: './renderer.component.html',
   styleUrls: ['./renderer.component.scss']
 })
-export class RendererComponent implements OnInit {
-
-  private static mathToPixel(coord: MathCoordinate): PixelCoordinate {
-    return {
-      left: Math.round((coord.x + X_MAX) / MATH_PIXEL_RATIO),
-      top: Math.round(-(coord.y + Y_MIN) / MATH_PIXEL_RATIO),
-    }
-  }
-
-  private static pixelToMath(coord: PixelCoordinate): MathCoordinate {
-    return {
-      x: MATH_PIXEL_RATIO * coord.left + X_MIN,
-      y: Y_MAX - MATH_PIXEL_RATIO * coord.top
-    }
-  }
+export class RendererComponent implements AfterViewInit {
 
   @ViewChild('inputCanvasArea') private inputCanvasArea: ElementRef;
   @ViewChild('vectorFieldSvgArea') private vectorFieldSvgArea: ElementRef;
@@ -75,7 +62,7 @@ export class RendererComponent implements OnInit {
 
   @HostListener('click', ['$event']) public onClick(e: PointerEvent) {
     console.log('pixel coord: left: ', e.offsetX + ', top: ' + e.offsetY);
-    let coord = RendererComponent.pixelToMath({top: e.offsetY, left: e.offsetX});
+    let coord = this.pixelToMath({top: e.offsetY, left: e.offsetX});
     console.log('math coord: x: ', coord.x + ', y: ' + coord.y);
     let v = this.field.getVector(coord);
     console.log('vector: v_x: ', v.x + ', v_y: ' + v.y);
@@ -105,13 +92,14 @@ export class RendererComponent implements OnInit {
           break;
       }
   
-      coord = RendererComponent.pixelToMath({top: nextY, left: nextX});
+      coord = this.pixelToMath({top: nextY, left: nextX});
       v = this.field.getVector(coord);
       nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
       console.log('NEXTNEXT: ', nextArea);
     }
-
   }
+
+  private DIM: Dimensions = {};
 
   private d3: D3;
   private svg: any;
@@ -121,11 +109,33 @@ export class RendererComponent implements OnInit {
   private noise: number[][] = [];
   private licData: number[][] = [];
 
-  constructor(d3Service: D3Service) {
+  constructor(d3Service: D3Service, private hostElement: ElementRef) {
     this.d3 = d3Service.getD3();
   }
 
-  ngOnInit() {
+  ngAfterViewInit() {
+
+    this.DIM.bgMargin = 99;
+    this.DIM.outputBorderSize = 1;
+    this.DIM.xRange = 2;
+
+    this.DIM.bgWidth = this.hostElement.nativeElement.clientWidth;
+    this.DIM.bgHeight = this.hostElement.nativeElement.clientHeight;
+    this.DIM.width = this.DIM.bgWidth - 2 * this.DIM.bgMargin;
+    this.DIM.widthHalf = this.DIM.width / 2;    
+    this.DIM.height = this.DIM.bgHeight - 2 * this.DIM.bgMargin;
+    this.DIM.heightHalf = this.DIM.height / 2;
+    this.DIM.ratio = this.DIM.width / this.DIM.height;
+    this.DIM.xRangeHalf = this.DIM.xRange;
+    this.DIM.mathPixelRatio = this.DIM.xRange / this.DIM.width;
+    this.DIM.xMin = -this.DIM.xRange / 2;
+    this.DIM.xMax = this.DIM.xRange / 2;
+    this.DIM.yMin = this.DIM.xMin / this.DIM.ratio;
+    this.DIM.yMax = this.DIM.xMax / this.DIM.ratio;
+
+    console.log('width: ', this.hostElement.nativeElement.clientWidth);
+    console.log('height: ', this.hostElement.nativeElement.clientHeight);
+
     // Demo Points
     for (let x = -0.95; x <= 0.95; x+=0.06) {
       for (let y = -0.7; y <= 0.7; y+=0.06) {
@@ -133,40 +143,63 @@ export class RendererComponent implements OnInit {
       }  
     }
     // inputCanvasArea
-    this.inputCanvasArea.nativeElement.width = BG_WIDTH;
-    this.inputCanvasArea.nativeElement.height = BG_HEIGHT;
+    this.inputCanvasArea.nativeElement.width = this.DIM.bgWidth;
+    this.inputCanvasArea.nativeElement.height = this.DIM.bgHeight;
     // vectorFieldSvgArea
-    this.vectorFieldSvgArea.nativeElement.style.width = WIDTH + 'px';
-    this.vectorFieldSvgArea.nativeElement.style.height = HEIGHT + 'px';
-    this.vectorFieldSvgArea.nativeElement.style.left =  BG_MARGIN + 'px';
-    this.vectorFieldSvgArea.nativeElement.style.top =  BG_MARGIN + 'px';
+    this.vectorFieldSvgArea.nativeElement.style.width = this.DIM.width + 'px';
+    this.vectorFieldSvgArea.nativeElement.style.height = this.DIM.height + 'px';
+    this.vectorFieldSvgArea.nativeElement.style.left = this.DIM.bgMargin + 'px';
+    this.vectorFieldSvgArea.nativeElement.style.top = this.DIM.bgMargin + 'px';
     this.svg = this.d3.select(this.vectorFieldSvgArea.nativeElement);
     this.svgg = this.svg.append('g').attr('transform', 'translate(.5, .5)');
     // outputCanvasArea
-    this.outputCanvasArea.nativeElement.width = WIDTH - 2 * OUTPUT_BORDER_SIZE;
-    this.outputCanvasArea.nativeElement.height = HEIGHT - 2 * OUTPUT_BORDER_SIZE;
-    this.outputCanvasArea.nativeElement.style.left = BG_MARGIN + 'px';
-    this.outputCanvasArea.nativeElement.style.top = BG_MARGIN + 'px';
-    this.outputCanvasArea.nativeElement.style.borderWidth = OUTPUT_BORDER_SIZE + 'px';
+    this.outputCanvasArea.nativeElement.width = this.DIM.width - 2 * this.DIM.outputBorderSize;
+    this.outputCanvasArea.nativeElement.height = this.DIM.height - 2 * this.DIM.outputBorderSize;
+    this.outputCanvasArea.nativeElement.style.left = this.DIM.bgMargin + 'px';
+    this.outputCanvasArea.nativeElement.style.top = this.DIM.bgMargin + 'px';
+    this.outputCanvasArea.nativeElement.style.borderWidth = this.DIM.outputBorderSize + 'px';
     this.drawInit();
+  }
+
+  public saveLicCanvas(): void {
+    this.outputCanvasArea.nativeElement.toBlob((blob) => {
+      const filename = 'deLICious.png';
+      console.info('Saving as: ' + filename);
+      saveAs(blob, filename);
+    });
+  }
+
+  private mathToPixel(coord: MathCoordinate): PixelCoordinate {
+    return {
+      left: Math.round((coord.x + this.DIM.xMax) / this.DIM.mathPixelRatio),
+      top: Math.round(-(coord.y + this.DIM.yMin) / this.DIM.mathPixelRatio),
+    }
+  }
+
+  private pixelToMath(coord: PixelCoordinate): MathCoordinate {
+    return {
+      x: this.DIM.mathPixelRatio * coord.left + this.DIM.xMin,
+      y: this.DIM.yMax - this.DIM.mathPixelRatio * coord.top
+    }
   }
 
   private drawInit(): void {
 
-    for (let y = 0; y < BG_HEIGHT; y++) {
+    for (let y = 0; y < this.DIM.bgHeight; y++) {
       const row: number[] = [];
-      for (let x = 0; x < BG_WIDTH; x++) {
+      for (let x = 0; x < this.DIM.bgWidth; x++) {
         let intensity = Math.random();
-        // if (intensity > 0.25) intensity = 1;
+        // if (intensity > 0.1) intensity = 1;
+        // else intensity = 0;
         row.push(Math.round(intensity * 255));
       }
       this.noise.push(row);
     }
     // this.noise = JSON.parse(noise);
 
-    for (let y = 0; y < HEIGHT; y++) {
+    for (let y = 0; y < this.DIM.height; y++) {
       const row: number[] = [];
-      for (let x = 0; x < WIDTH; x++) {
+      for (let x = 0; x < this.DIM.width; x++) {
         row.push(0);
       }
       this.licData.push(row);
@@ -175,11 +208,11 @@ export class RendererComponent implements OnInit {
 
     // Vectors
     this.someCoords.forEach((coord: MathCoordinate) => {
-      const p: PixelCoordinate = RendererComponent.mathToPixel(coord);      
+      const p: PixelCoordinate = this.mathToPixel(coord);      
 
       const v = this.field.getVector(coord);        
-      const p1: PixelCoordinate = RendererComponent.mathToPixel({x: coord.x - v.x, y: coord.y - v.y});
-      const p2: PixelCoordinate = RendererComponent.mathToPixel({x: coord.x + v.x, y: coord.y + v.y});
+      const p1: PixelCoordinate = this.mathToPixel({x: coord.x - v.x, y: coord.y - v.y});
+      const p2: PixelCoordinate = this.mathToPixel({x: coord.x + v.x, y: coord.y + v.y});
       this.svgg
         .append('line')
         .style('stroke-width', 2)
@@ -198,7 +231,7 @@ export class RendererComponent implements OnInit {
     });
 
     timer(0).subscribe(() => {
-      this.calcLicByLength();
+      this.calcLicByPixel();
       this.drawCanvas(this.outputCanvasArea, this.licData);
       this.showVectorField = false;
       this.showVectorFieldChange.emit(this.showVectorField);
@@ -206,7 +239,7 @@ export class RendererComponent implements OnInit {
   }
 
   private calcLicByPixel() {
-    const l = 30;
+    const l = 10;
     let intensity: number;
     let nextI: number;
     let nextJ: number;
@@ -217,12 +250,12 @@ export class RendererComponent implements OnInit {
     let timeStamp = Date.now();
     console.info('calculation started (type: PIXEL, l: ' + (2*l) + ')');
 
-    for (let i = 0; i < HEIGHT; i++) {
-      for (let j = 0; j < WIDTH; j++) {        
-        intensity = this.noise[i + BG_MARGIN][j + BG_MARGIN];        
+    for (let i = 0; i < this.DIM.height; i++) {
+      for (let j = 0; j < this.DIM.width; j++) {        
+        intensity = this.noise[i + this.DIM.bgMargin][j + this.DIM.bgMargin];        
         nextI = i;
         nextJ = j;
-        coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+        coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
         for (let i=0; i<l; i++) {
@@ -240,15 +273,15 @@ export class RendererComponent implements OnInit {
               nextJ++;
               break;
           }
-          intensity += this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN];
-          coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+          intensity += this.noise[nextI + this.DIM.bgMargin][nextJ + this.DIM.bgMargin];
+          coord = this.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
         }
 
         nextI = i;
         nextJ = j;        
-        coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+        coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         v.x *= -1;
         v.y *= -1;
@@ -269,8 +302,8 @@ export class RendererComponent implements OnInit {
               break;
           }
       
-          intensity += this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN];
-          coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+          intensity += this.noise[nextI + this.DIM.bgMargin][nextJ + this.DIM.bgMargin];
+          coord = this.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
           v.x *= -1;
           v.y *= -1;
@@ -281,7 +314,7 @@ export class RendererComponent implements OnInit {
         this.licData[i][j] = intensity;
       }
       if (rowCnt > 49) {
-        console.info('calculating: ' + Math.round(100 * i / HEIGHT) + '%');
+        console.info('calculating: ' + Math.round(100 * i / this.DIM.height) + '%');
         rowCnt = 0;
       }
       rowCnt++;
@@ -290,7 +323,7 @@ export class RendererComponent implements OnInit {
   }
 
   private calcLicByLength() {
-    const l = 30/Math.SQRT2;
+    const l = 20/Math.SQRT2;
     let intensity: number;
     let factor: number;
     let nextI: number;
@@ -303,16 +336,16 @@ export class RendererComponent implements OnInit {
     let timeStamp = Date.now();
     console.info('calculation started (type: LENGTH, l: ' + (2*l) + ')');
 
-    for (let i = 0; i < HEIGHT; i++) {
-      for (let j = 0; j < WIDTH; j++) {        
+    for (let i = 0; i < this.DIM.height; i++) {
+      for (let j = 0; j < this.DIM.width; j++) {        
         nextI = i;
         nextJ = j;
         restDistance = l;        
-        coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+        coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
         factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
-        intensity = this.noise[i + BG_MARGIN][j + BG_MARGIN] * factor;
+        intensity = this.noise[i + this.DIM.bgMargin][j + this.DIM.bgMargin] * factor;
         restDistance = l - nextArea.distance;
         while (restDistance > 0) {
           switch (nextArea.border) {
@@ -330,24 +363,24 @@ export class RendererComponent implements OnInit {
               break;
           }
       
-          coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+          coord = this.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
           factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
-          intensity += (this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN]) * factor;
+          intensity += (this.noise[nextI + this.DIM.bgMargin][nextJ + this.DIM.bgMargin]) * factor;
           restDistance -= nextArea.distance;
         }
 
         nextI = i;
         nextJ = j;
         restDistance = l;
-        coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+        coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
         v.x *= -1;
         v.y *= -1;
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
         factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
-        intensity += this.noise[i + BG_MARGIN][j + BG_MARGIN] * factor;
+        intensity += this.noise[i + this.DIM.bgMargin][j + this.DIM.bgMargin] * factor;
         restDistance = l - nextArea.distance;
         while (restDistance > 0) {
           switch (nextArea.border) {
@@ -365,13 +398,13 @@ export class RendererComponent implements OnInit {
               break;
           }
       
-          coord = RendererComponent.pixelToMath({top: nextI, left: nextJ});
+          coord = this.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
           v.x *= -1;
           v.y *= -1;
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
           factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
-          intensity += (this.noise[nextI + BG_MARGIN][nextJ + BG_MARGIN]) * factor;
+          intensity += (this.noise[nextI + this.DIM.bgMargin][nextJ + this.DIM.bgMargin]) * factor;
           restDistance -= nextArea.distance;
         }
 
@@ -380,7 +413,7 @@ export class RendererComponent implements OnInit {
         this.licData[i][j] = intensity;
       }
       if (rowCnt > 49) {
-        console.info('calculating: ' + Math.round(100 * i / HEIGHT) + '%');
+        console.info('calculating: ' + Math.round(100 * i / this.DIM.height) + '%');
         rowCnt = 0;
       }
       rowCnt++;
@@ -392,7 +425,7 @@ export class RendererComponent implements OnInit {
 
     let alphas: number[] = []
     let beta: number;
-    const offset = 0.1;
+    const offset = 0.01;
     // Top, Bottom, Left, Right
     alphas.push((1 - s.y) / v.y);
     alphas.push(-s.y / v.y);
@@ -447,7 +480,7 @@ export class RendererComponent implements OnInit {
     const width = canvas.nativeElement.width;
     const height = canvas.nativeElement.height;
     const ctx = canvas.nativeElement.getContext('2d');
-    const imageData = ctx.getImageData(0, 0, BG_WIDTH, BG_HEIGHT);
+    const imageData = ctx.getImageData(0, 0, this.DIM.bgWidth, this.DIM.bgHeight);
 
     let buf = new ArrayBuffer(imageData.data.length);
     let buf8 = new Uint8ClampedArray(buf);
@@ -457,7 +490,7 @@ export class RendererComponent implements OnInit {
     for (let i = 0; i < height; i++) {
       for (let j = 0; j < width; j++) {
         let value = data[i][j];
-        uint32Array[i * BG_WIDTH + j] = 
+        uint32Array[i * this.DIM.bgWidth + j] = 
           (255 << 24) |       // alpha
           (value << 16) |     // blue
           (value << 8) |      // green

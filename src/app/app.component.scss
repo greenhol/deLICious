@@ -1,6 +1,27 @@
+:host {
+    display: block;
+    position: relative;
+}
+
 .optionsArea {
     display: flex;
-    flex-direction: column;
-    position: absolute;
-    top: 825px;
+    position: relative;   
+    flex-direction: row;
+    margin-bottom: 8px;
+
+    div {
+        margin: auto 8px;
+    }
+
+    .button {
+        background-color: lightgray;
+        border: 1px solid black;
+        text-align: center;
+        padding: 5px 20px;
+    }
+}
+
+.renderer {
+    width: 1000px;
+    height: 800px;
 }

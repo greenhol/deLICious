@@ -1,10 +1,12 @@
-<lic-renderer [field]="chargeField"
-              [showInput]="showInput"
-              [(showVectorField)]="showVectorField"
-              [showOutput]="showOutput">
-</lic-renderer>
 <div class="optionsArea">
+    <div class="button" (click)="onDownloadButtonClick()">Download</div>
     <div><input type="checkbox" [checked]="showInput" (change)="showInput = !showInput" />Show Input</div>
     <div><input type="checkbox" [checked]="showVectorField" (change)="showVectorField = !showVectorField" />Show Vector Field</div>
     <div><input type="checkbox" [checked]="showOutput" (change)="showOutput = !showOutput" />Show Output</div>
 </div>
+<lic-renderer class="renderer"
+              [field]="chargeField"
+              [showInput]="showInput"
+              [(showVectorField)]="showVectorField"
+              [showOutput]="showOutput">
+</lic-renderer>
