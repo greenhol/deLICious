@@ -9,8 +9,11 @@ export interface MathCoordinate {
 }
 
 export interface Vector {
-    x: number;
-    y: number;
+    vX: number;
+    vXn: number;
+    vY: number;
+    vYn: number;
+    value: number;
 }  
 
 export abstract class Field {

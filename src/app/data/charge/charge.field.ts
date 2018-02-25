@@ -28,18 +28,29 @@ export class ChargeField extends Field {
     }
 
     public getVector(coord: MathCoordinate): Vector {
-        let v: Vector = {x: 0, y: 0};
+        let v: Vector = {
+            vX: 0,
+            vXn: 1,
+            vY: 0,
+            vYn: 0,
+            value: 1
+        };
 
         for (let i = 0; i< this.charges.length; i++) {
-          const rd: Vector = {x: coord.x - this.charges[i].coord.x, y: coord.y - this.charges[i].coord.y};
-          const rdAbs = Math.sqrt(rd.x * rd.x + rd.y * rd.y);
-          v.x += this.charges[i].magnitude * rd.x / Math.pow(rdAbs, 3);
-          v.y += this.charges[i].magnitude * rd.y / Math.pow(rdAbs, 3);
+          const rdX = coord.x - this.charges[i].coord.x;
+          const rdY = coord.y - this.charges[i].coord.y;
+          const rdValue = Math.sqrt(rdX * rdX + rdY * rdY);
+          v.vX += this.charges[i].magnitude * rdX / Math.pow(rdValue, 3);
+          v.vY += this.charges[i].magnitude * rdY / Math.pow(rdValue, 3);
         }
     
-        const vAbs = Math.sqrt(v.x * v.x + v.y * v.y) * 15;
+        // Rotate for Potential
+        // v = {vX: -v.vY, vXn: 1, vY: v.vX, vYn: 0, value: 1};
+        
+        v.value = Math.sqrt(v.vX * v.vX + v.vY * v.vY);
+        v.vXn = v.vX / v.value;
+        v.vYn = v.vY / v.value;
     
-        return {x: v.x / vAbs, y: v.y / vAbs}; // Field
-        // return {x: -v.y / vAbs, y: v.x / vAbs}; // Potential
+        return v;
     }
 }

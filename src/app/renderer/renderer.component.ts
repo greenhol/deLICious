@@ -65,38 +65,34 @@ export class RendererComponent implements AfterViewInit {
     let coord = this.pixelToMath({top: e.offsetY, left: e.offsetX});
     console.log('math coord: x: ', coord.x + ', y: ' + coord.y);
     let v = this.field.getVector(coord);
-    console.log('vector: v_x: ', v.x + ', v_y: ' + v.y);
+    console.log('vector: ', v.value);
+
     // const pixel = RendererComponent.mathToPixel(coord);
     // console.log('pixel coord: left: ', pixel.left + ', top: ' + pixel.top);
-
-    let nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
-    console.log('NEXT: ', nextArea);
-
-    let nextX = e.offsetX;
-    let nextY = e.offsetY;
-
-    for (let i=0; i<10; i++) {
-
-      switch (nextArea.border) {
-        case Border.TOP:
-          nextY--;
-          break;
-        case Border.BOTTOM:
-          nextY++;
-          break;
-        case Border.LEFT:
-          nextX--;
-          break;
-        case Border.RIGHT:
-          nextX++;
-          break;
-      }
-  
-      coord = this.pixelToMath({top: nextY, left: nextX});
-      v = this.field.getVector(coord);
-      nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
-      console.log('NEXTNEXT: ', nextArea);
-    }
+    // let nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
+    // console.log('NEXT: ', nextArea);
+    // let nextX = e.offsetX;
+    // let nextY = e.offsetY;
+    // for (let i=0; i<10; i++) {
+    //   switch (nextArea.border) {
+    //     case Border.TOP:
+    //       nextY--;
+    //       break;
+    //     case Border.BOTTOM:
+    //       nextY++;
+    //       break;
+    //     case Border.LEFT:
+    //       nextX--;
+    //       break;
+    //     case Border.RIGHT:
+    //       nextX++;
+    //       break;
+    //   }
+    //   coord = this.pixelToMath({top: nextY, left: nextX});
+    //   v = this.field.getVector(coord);
+    //   nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
+    //   console.log('NEXTNEXT: ', nextArea);
+    // }
   }
 
   private DIM: Dimensions = {};
@@ -208,11 +204,11 @@ export class RendererComponent implements AfterViewInit {
 
     // Vectors
     this.someCoords.forEach((coord: MathCoordinate) => {
-      const p: PixelCoordinate = this.mathToPixel(coord);      
+      const p: PixelCoordinate = this.mathToPixel(coord);
 
-      const v = this.field.getVector(coord);        
-      const p1: PixelCoordinate = this.mathToPixel({x: coord.x - v.x, y: coord.y - v.y});
-      const p2: PixelCoordinate = this.mathToPixel({x: coord.x + v.x, y: coord.y + v.y});
+      const v = this.field.getVector(coord); 
+      const p1: PixelCoordinate = this.mathToPixel({x: coord.x, y: coord.y});
+      const p2: PixelCoordinate = this.mathToPixel({x: coord.x + v.vXn / 15, y: coord.y + v.vYn / 15});
       this.svgg
         .append('line')
         .style('stroke-width', 2)
@@ -283,8 +279,8 @@ export class RendererComponent implements AfterViewInit {
         nextJ = j;        
         coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
-        v.x *= -1;
-        v.y *= -1;
+        v.vXn *= -1;
+        v.vYn *= -1;
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
         for (let i=0; i<l; i++) {
           switch (nextArea.border) {
@@ -305,8 +301,8 @@ export class RendererComponent implements AfterViewInit {
           intensity += this.noise[nextI + this.DIM.bgMargin][nextJ + this.DIM.bgMargin];
           coord = this.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
-          v.x *= -1;
-          v.y *= -1;
+          v.vXn *= -1;
+          v.vYn *= -1;
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
         }
 
@@ -376,8 +372,8 @@ export class RendererComponent implements AfterViewInit {
         restDistance = l;
         coord = this.pixelToMath({top: nextI, left: nextJ});
         v = this.field.getVector(coord);
-        v.x *= -1;
-        v.y *= -1;
+        v.vXn *= -1;
+        v.vYn *= -1;
         nextArea = this.getNextArea({x: 0.5, y: 0.5}, v);
         factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
         intensity += this.noise[i + this.DIM.bgMargin][j + this.DIM.bgMargin] * factor;
@@ -400,8 +396,8 @@ export class RendererComponent implements AfterViewInit {
       
           coord = this.pixelToMath({top: nextI, left: nextJ});
           v = this.field.getVector(coord);
-          v.x *= -1;
-          v.y *= -1;
+          v.vXn *= -1;
+          v.vYn *= -1;
           nextArea = this.getNextArea({x: nextArea.pos.x, y: nextArea.pos.y}, v);
           factor = (nextArea.distance < restDistance) ? nextArea.distance : restDistance;
           intensity += (this.noise[nextI + this.DIM.bgMargin][nextJ + this.DIM.bgMargin]) * factor;
@@ -427,40 +423,40 @@ export class RendererComponent implements AfterViewInit {
     let beta: number;
     const offset = 0.01;
     // Top, Bottom, Left, Right
-    alphas.push((1 - s.y) / v.y);
-    alphas.push(-s.y / v.y);
-    alphas.push(-s.x / v.x);
-    alphas.push((1 - s.x) / v.x);
+    alphas.push((1 - s.y) / v.vYn);
+    alphas.push(-s.y / v.vYn);
+    alphas.push(-s.x / v.vXn);
+    alphas.push((1 - s.x) / v.vXn);
     alphas.forEach((alpha: number, i: number) => {
       if (alpha <= 0) alphas[i] = Infinity;
     })
     const borderIndex = alphas.indexOf(Math.min(...alphas));
-    const distance = Math.sqrt(Math.pow(alphas[borderIndex] * v.x, 2) + Math.pow(alphas[borderIndex] * v.y, 2)) / Math.SQRT2;
+    const distance = Math.sqrt(Math.pow(alphas[borderIndex] * v.vXn, 2) + Math.pow(alphas[borderIndex] * v.vYn, 2)) / Math.SQRT2;
     
     switch (borderIndex) {
       case 0: // Top
-        beta = v.x * alphas[borderIndex] + s.x;
+        beta = v.vXn * alphas[borderIndex] + s.x;
         return {
           border: Border.TOP,
           pos: {x: beta, y: offset},
           distance: distance
         }
       case 1: // Bottom
-        beta = v.x * alphas[borderIndex] + s.x;
+        beta = v.vXn * alphas[borderIndex] + s.x;
         return {
           border: Border.BOTTOM,
           pos: {x: beta, y: 1 - offset},
           distance: distance
         }
       case 2: // Left
-        beta = v.y * alphas[borderIndex] + s.y;
+        beta = v.vYn * alphas[borderIndex] + s.y;
         return {
           border: Border.LEFT,
           pos: {x: 1 - offset, y: beta},
           distance: distance
         }
       case 3: // Right
-        beta = v.y * alphas[borderIndex] + s.y;
+        beta = v.vYn * alphas[borderIndex] + s.y;
         return {
           border: Border.RIGHT,
           pos: {x: offset, y: beta},
