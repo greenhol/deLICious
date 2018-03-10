@@ -4,11 +4,23 @@ export interface Color {
     b: number;
 }
 
-export interface ColorMapConfig {
-    minValue: number;
-    maxValue: number;
-    colorSteps: string[];
+export interface ColorStep {
+    nextColor: string;
+    range: number;
 }
+
+export interface ColorMapConfig {
+    startValue: number;
+    startColor: string;
+    colorSteps: ColorStep[];
+}
+
+export enum ColorEvalType {
+    Linear,
+    Sin
+}
+
+type ColorEvalFunction = (value: number, firstColor: Color, secondColor: Color, range: number) => Color;
 
 export class ColorMap {
 
@@ -23,10 +35,11 @@ export class ColorMap {
 
     private _config: ColorMapConfig;
     private _colors: Color[] = [];
-    private _intervalRange: number;
     private _intervalCount: number;
     private _lowColor: Color;
     private _highColor: Color;
+    private _endValue: number;
+    private _colorEval: ColorEvalFunction;
 
     private static pad(num, size) {
         var s = '' + num;
@@ -34,17 +47,42 @@ export class ColorMap {
         return s;
     }
 
-    constructor(config: ColorMapConfig) {
+    constructor(config: ColorMapConfig, colorEvalType: ColorEvalType) {
 
         this._config = config;
-        this._intervalCount = this._config.colorSteps.length - 1;
-        this._intervalRange = (config.maxValue - config.minValue) / this._intervalCount;
-        if (this._intervalCount < 1) throw new Error('number of color steps invalid (needs to be > 1)');
+        this._intervalCount = this._config.colorSteps.length;
+        if (this._intervalCount < 1) throw new Error('number of color steps invalid (needs to be > 0)');
 
-        this._config.colorSteps.forEach(c => this._colors.push(ColorMap.hexToRgb(c)));
+        this._colors.push(ColorMap.hexToRgb(config.startColor));
+        this._endValue = this._config.startValue;
+        this._config.colorSteps.forEach(colorStep => {
+            this._endValue += colorStep.range;
+            this._colors.push(ColorMap.hexToRgb(colorStep.nextColor));
+        });
 
-        this._lowColor = ColorMap.hexToRgb(config.colorSteps[0]);
-        this._highColor = ColorMap.hexToRgb(config.colorSteps[this._intervalCount]);
+        this._lowColor = ColorMap.hexToRgb(config.startColor);
+        this._highColor = ColorMap.hexToRgb(config.colorSteps[this._intervalCount-1].nextColor);
+
+        switch (colorEvalType) {
+            case ColorEvalType.Linear:
+                this._colorEval = function(value: number, firstColor: Color, secondColor: Color, range: number): Color {
+                    return {
+                        r: Math.floor((secondColor.r-firstColor.r)/range*value+firstColor.r),
+                        g: Math.floor((secondColor.g-firstColor.g)/range*value+firstColor.g),
+                        b: Math.floor((secondColor.b-firstColor.b)/range*value+firstColor.b)
+                    };
+                }
+                break;
+            case ColorEvalType.Sin:
+                this._colorEval = function(value: number, firstColor: Color, secondColor: Color, range: number): Color {
+                    return {
+                        r: Math.floor(0.5*((firstColor.r-secondColor.r)*Math.cos((Math.PI*(value))/(-range))+firstColor.r+secondColor.r)),
+                        g: Math.floor(0.5*((firstColor.g-secondColor.g)*Math.cos((Math.PI*(value))/(-range))+firstColor.g+secondColor.g)),
+                        b: Math.floor(0.5*((firstColor.b-secondColor.b)*Math.cos((Math.PI*(value))/(-range))+firstColor.b+secondColor.b))
+                    };
+                }
+                break;
+        }
     }
 
     public get config(): ColorMapConfig {
@@ -52,28 +90,36 @@ export class ColorMap {
     }
 
     public get configAsString(): string {
-        let configString = '_minValue_' + this._config.minValue;
-        configString += '_maxValue_' + this._config.maxValue;
+        let configString = '_startValue_' + this._config.startValue;
+        configString += '_startColor_' + this._config.startColor;
         for (let i = 0; i < this._config.colorSteps.length; i++) {
-            configString += 'C' + (i+1) + this._config.colorSteps[i];
+            configString += '_R' + this._config.colorSteps[i].range;
+            configString += '_C' + this._config.colorSteps[i].nextColor;
         }
         return configString;
     }
 
     public getColor(value: number): Color {
-        if (value <= this._config.minValue) return this._lowColor;
-        if (value >= this._config.maxValue) return this._highColor;
+        if (value <= this._config.startValue) return this._lowColor;
+        if (value >= this._endValue) return this._highColor;
 
-        const intervalIndex = Math.floor((value - this._config.minValue) / this._intervalRange);
-        const intervalValue = (value - this._config.minValue) % this._intervalRange;
+        let intervalValue: number;
+        let intervalRange: number;
+        let intervalIndex = 0;
+        let intervalStartValue = this._config.startValue;
+        for (let i = 0; i<this._config.colorSteps.length; i++) {
+            if (value < intervalStartValue + this._config.colorSteps[i].range) {
+                intervalValue = value - intervalStartValue;
+                intervalRange = this._config.colorSteps[i].range;
+                break;
+            }
+            intervalStartValue += this.config.colorSteps[i].range;
+            intervalIndex++;
+        }
         const firstColor: Color = this._colors[intervalIndex];
         const secondColor: Color = this._colors[intervalIndex+1];
 
-        return {
-            r: Math.floor(0.5*((firstColor.r-secondColor.r)*Math.cos((Math.PI*(intervalValue))/(-this._intervalRange))+firstColor.r+secondColor.r)),
-            g: Math.floor(0.5*((firstColor.g-secondColor.g)*Math.cos((Math.PI*(intervalValue))/(-this._intervalRange))+firstColor.g+secondColor.g)),
-            b: Math.floor(0.5*((firstColor.b-secondColor.b)*Math.cos((Math.PI*(intervalValue))/(-this._intervalRange))+firstColor.b+secondColor.b))
-        };
+        return this._colorEval(intervalValue, firstColor, secondColor, intervalRange);
     }
 
 }

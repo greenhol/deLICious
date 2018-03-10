@@ -3,8 +3,9 @@ import { D3Service, D3, Selection } from 'd3-ng2-service';
 import { saveAs } from 'file-saver';
 import { timer } from 'rxjs/observable/timer';
 import { MathCoordinate, Vector, Field } from './../data/field';
-import { ColorMap, Color } from './../data/color-map';
-// import { noise } from './noise';
+import { ColorMap, Color, ColorEvalType } from './../data/color-map';
+// import { NOISE } from '../data/_noise';
+// import { DRAW_NOISE } from '../data/_drawNoise';
 
 enum Border {
   TOP = 'Top',
@@ -140,31 +141,19 @@ export class RendererComponent implements AfterViewInit {
         this.someCoords.push({x: x, y: y});
       }  
     }
-    // Color Map
     this.colorMap = new ColorMap({
-      minValue: 0,
-      maxValue: 4,
-      colorSteps: [
-        '#FFFFFF',
-        '#00FF00',
-        '#11EE00',
-        '#22DD00',
-        '#33CC00',
-        '#44BB00',
-        '#55AA00',
-        '#669900',
-        '#778800',
-        '#887700',
-        '#996600',
-        '#AA5500',
-        '#BB4400',
-        '#CC3300',
-        '#DD2200',
-        '#EE1100',
-        '#FF0000',
-        '#660000'
-      ]
-    });
+        startValue: 0,
+        startColor: '#000000',
+        colorSteps: [
+          {nextColor: '#FFAD60', range: 0.05},
+          {nextColor: '#FFFFFF', range: 0.15},
+          {nextColor: '#268425', range: 0.5},
+          {nextColor: '#000000', range: 20}
+        ]
+      }, ColorEvalType.Sin);
+    
+    console.log(this.colorMap.configAsString);
+
     // inputCanvasArea
     this.inputCanvasArea.nativeElement.width = this.DIM.bgWidth;
     this.inputCanvasArea.nativeElement.height = this.DIM.bgHeight;
@@ -225,7 +214,8 @@ export class RendererComponent implements AfterViewInit {
       this.noise.push(row);
       drawNoise.push(rowDraw);
     }
-    // this.noise = JSON.parse(noise);
+    // this.noise = JSON.parse(NOISE);
+    // let drawNoise = JSON.parse(DRAW_NOISE);
 
     for (let y = 0; y < this.DIM.height; y++) {
       const row: Color[] = [];
