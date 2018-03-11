@@ -150,8 +150,8 @@ export class RendererComponent implements AfterViewInit {
         startColor: '#000000',
         colorSteps: [
           {nextColor: '#0000FF', range: 0.1},
-          {nextColor: '#FFFF00', range: 0.25},
-          {nextColor: '#FF0000', range: 0.5},
+          {nextColor: '#AAAA00', range: 0.25},
+          {nextColor: '#FF0000', range: 0.75},
           {nextColor: '#440000', range: 20}
         ]
       }, ColorEvalType.Sin);
@@ -391,7 +391,7 @@ export class RendererComponent implements AfterViewInit {
   }
 
   private calcLicByLength(l: number) {
-    l = 50/Math.SQRT2;
+    l = l/Math.SQRT2;
     let intensity: number;
     let factor: number;
     let nextI: number;
