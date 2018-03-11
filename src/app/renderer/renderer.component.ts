@@ -41,7 +41,6 @@ interface Dimensions {
   bgWidth?:number;
   bgHeight?:number;
   xRange?:number;
-  xRangeHalf?:number;
   mathPixelRatio?:number;
   xMin?:number;
   xMax?:number;
@@ -61,15 +60,22 @@ export class RendererComponent implements AfterViewInit {
   @ViewChild('outputCanvasArea') private outputCanvasArea: ElementRef;
 
   @Input() public field: Field;
+  @Input() public xMin: number = -1;
+  @Input() public xMax: number = 1;
+  @Input() public yOffset: number = 0;
   @Input() public showInput = true;
   @Input() public showVectorField = true;
   @Output() public showVectorFieldChange = new EventEmitter<boolean>();
   @Input() public showOutput = true;
 
   @HostListener('click', ['$event']) public onClick(e: PointerEvent) {
+    
     console.log('pixel coord: left: ', e.offsetX + ', top: ' + e.offsetY);
     let coord = this.pixelToMath({top: e.offsetY, left: e.offsetX});
     console.log('math coord: x: ', coord.x + ', y: ' + coord.y);
+    // let coordPixel = this.mathToPixel(coord);
+    // console.log('pixel coord: left: ', coordPixel.left + ', top: ' + coordPixel.top);
+    
     let v = this.field.getVector(coord);
     console.log('vector: ', v);
 
@@ -120,7 +126,7 @@ export class RendererComponent implements AfterViewInit {
 
     this.DIM.bgMargin = 99;
     this.DIM.outputBorderSize = 1;
-    this.DIM.xRange = 2;
+    this.DIM.xRange = this.xMax - this.xMin;
 
     this.DIM.bgWidth = this.hostElement.nativeElement.clientWidth;
     this.DIM.bgHeight = this.hostElement.nativeElement.clientHeight;
@@ -129,32 +135,30 @@ export class RendererComponent implements AfterViewInit {
     this.DIM.height = this.DIM.bgHeight - 2 * this.DIM.bgMargin;
     this.DIM.heightHalf = this.DIM.height / 2;
     this.DIM.ratio = this.DIM.width / this.DIM.height;
-    this.DIM.xRangeHalf = this.DIM.xRange;
     this.DIM.mathPixelRatio = this.DIM.xRange / this.DIM.width;
-    this.DIM.xMin = -this.DIM.xRange / 2;
-    this.DIM.xMax = this.DIM.xRange / 2;
-    this.DIM.yMin = this.DIM.xMin / this.DIM.ratio;
-    this.DIM.yMax = this.DIM.xMax / this.DIM.ratio;
-
-    console.log('width: ', this.hostElement.nativeElement.clientWidth);
-    console.log('height: ', this.hostElement.nativeElement.clientHeight);
+    this.DIM.xMin = this.xMin;
+    this.DIM.xMax = this.xMax;
+    this.DIM.yMin = this.yOffset - (this.DIM.xRange / this.DIM.ratio / 2);
+    this.DIM.yMax = this.yOffset + (this.DIM.xRange / this.DIM.ratio / 2);
 
     // Demo Points
-    for (let x = -0.95; x <= 0.95; x+=0.06) {
-      for (let y = -0.7; y <= 0.7; y+=0.06) {
+    const distanceBetweenArrows = this.DIM.xRange / this.DIM.width / 0.0375;
+    for (let x = this.DIM.xMin; x <= this.DIM.xMax; x+=distanceBetweenArrows) {
+      for (let y = this.DIM.yMin; y <= this.DIM.yMax; y+=distanceBetweenArrows) {
         this.someCoords.push({x: x, y: y});
       }  
     }
     this.colorMap = new ColorMap({
         startValue: 0,
-        startColor: '#000000',
+        startColor: '#4682B4',
+        // startColor: '#000000',
         colorSteps: [
-          {nextColor: '#0000FF', range: 0.1},
-          {nextColor: '#AAAA00', range: 0.25},
-          {nextColor: '#FF0000', range: 0.75},
+          {nextColor: '#FFFF00', range: 0.1},
+          {nextColor: '#FF8C00', range: 0.1},
+          {nextColor: '#8A0000', range: 0.65},
           {nextColor: '#440000', range: 20}
         ]
-      }, ColorEvalType.Sin);
+      }, ColorEvalType.Trig);
     
     console.log(this.colorMap.configAsString);
 
@@ -187,8 +191,8 @@ export class RendererComponent implements AfterViewInit {
 
   private mathToPixel(coord: MathCoordinate): PixelCoordinate {
     return {
-      left: Math.round((coord.x + this.DIM.xMax) / this.DIM.mathPixelRatio),
-      top: Math.round(-(coord.y + this.DIM.yMin) / this.DIM.mathPixelRatio),
+      left: Math.round((coord.x - this.DIM.xMin) / this.DIM.mathPixelRatio),
+      top: -Math.round((coord.y - this.DIM.yMax) / this.DIM.mathPixelRatio),
     }
   }
 
@@ -231,11 +235,12 @@ export class RendererComponent implements AfterViewInit {
     this.drawCanvas(this.inputCanvasArea, drawNoise);
 
     // Vectors
+    const arrorFactor = 20 * this.DIM.xRange / this.DIM.width;
     this.someCoords.forEach((coord: MathCoordinate) => {
       const p: PixelCoordinate = this.mathToPixel(coord);
       const v = this.field.getVector(coord); 
       const p1: PixelCoordinate = this.mathToPixel({x: coord.x, y: coord.y});
-      const p2: PixelCoordinate = this.mathToPixel({x: coord.x + v.vXn / 15, y: coord.y + v.vYn / 15});
+      const p2: PixelCoordinate = this.mathToPixel({x: coord.x + v.vXn * arrorFactor, y: coord.y + v.vYn * arrorFactor});
       const vColor = ColorMap.rgbToHex(this.colorMap.getColor(v.value));
       this.svgg
         .append('line')

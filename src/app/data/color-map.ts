@@ -17,7 +17,7 @@ export interface ColorMapConfig {
 
 export enum ColorEvalType {
     Linear,
-    Sin
+    Trig
 }
 
 type ColorEvalFunction = (value: number, firstColor: Color, secondColor: Color, range: number) => Color;
@@ -83,7 +83,7 @@ export class ColorMap {
                     };
                 }
                 break;
-            case ColorEvalType.Sin:
+            case ColorEvalType.Trig:
                 this._colorEval = function(value: number, firstColor: Color, secondColor: Color, range: number): Color {
                     return {
                         r: Math.floor(0.5*((firstColor.r-secondColor.r)*Math.cos((Math.PI*(value))/(-range))+firstColor.r+secondColor.r)),
