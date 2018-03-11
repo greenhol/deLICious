@@ -150,13 +150,10 @@ export class RendererComponent implements AfterViewInit {
     }
     this.colorMap = new ColorMap({
         startValue: 0,
-        startColor: '#4682B4',
-        // startColor: '#000000',
+        startColor: '#880000',
         colorSteps: [
-          {nextColor: '#FFFF00', range: 0.1},
-          {nextColor: '#FF8C00', range: 0.1},
-          {nextColor: '#8A0000', range: 0.65},
-          {nextColor: '#440000', range: 20}
+          {nextColor: '#FF8800', range: 0.1},
+          {nextColor: '#FF0000', range: Math.SQRT2-0.1}
         ]
       }, ColorEvalType.Trig);
     

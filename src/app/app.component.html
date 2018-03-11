@@ -5,11 +5,11 @@
     <div><input type="checkbox" [checked]="showOutput" (change)="showOutput = !showOutput" />Show Output</div>
 </div>
 <lic-renderer class="renderer"
-              [field]="chargeField"
+              [field]="fnXYField"
               [showInput]="showInput"
               [(showVectorField)]="showVectorField"
               [showOutput]="showOutput"
-              [xMin]="-1.5"
-              [xMax]="2"
-              [yOffset]="0.25">
+              [xMin]="-2"
+              [xMax]="6"
+              [yOffset]="0.5">
 </lic-renderer>

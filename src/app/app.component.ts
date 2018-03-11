@@ -1,5 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { ChargeField } from './data/charge/charge.field';
+import { FnXYField } from './data/fnXY/fnXY.field';
 import { RendererComponent } from './renderer/renderer.component';
 
 @Component({
@@ -15,6 +16,7 @@ export class AppComponent {
   public showVectorField = true;
   public showOutput = true;
   public chargeField = new ChargeField();
+  public fnXYField = new FnXYField();
 
   public onDownloadButtonClick(): void {
     this.renderer.saveLicCanvas();

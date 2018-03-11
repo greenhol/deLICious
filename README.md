@@ -19,3 +19,5 @@ This is an [angular](https://angular.io/) App for the purpose of visualizing vec
 ![](./Screenshot_02.png "deLICious")
 
 ![](./Screenshot_03.png "deLICious")
+
+![](./Screenshot_04.png "deLICious")
