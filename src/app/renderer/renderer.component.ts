@@ -7,6 +7,10 @@ import { ColorMap, Color, ColorEvalType } from './../data/color-map';
 // import { NOISE } from '../data/_noise';
 // import { DRAW_NOISE } from '../data/_drawNoise';
 
+function roundByMaxDigits(value: number, digitsFactor: 100): number {
+  return Math.round(value * digitsFactor) / digitsFactor;
+}
+
 enum Border {
   TOP = 'Top',
   BOTTOM = 'Bottom',
@@ -145,10 +149,10 @@ export class RendererComponent implements AfterViewInit {
         startValue: 0,
         startColor: '#000000',
         colorSteps: [
-          {nextColor: '#FFAD60', range: 0.05},
-          {nextColor: '#FFFFFF', range: 0.15},
-          {nextColor: '#268425', range: 0.5},
-          {nextColor: '#000000', range: 20}
+          {nextColor: '#0000FF', range: 0.1},
+          {nextColor: '#FFFF00', range: 0.25},
+          {nextColor: '#FF0000', range: 0.5},
+          {nextColor: '#440000', range: 20}
         ]
       }, ColorEvalType.Sin);
     
@@ -229,31 +233,66 @@ export class RendererComponent implements AfterViewInit {
     // Vectors
     this.someCoords.forEach((coord: MathCoordinate) => {
       const p: PixelCoordinate = this.mathToPixel(coord);
-
       const v = this.field.getVector(coord); 
       const p1: PixelCoordinate = this.mathToPixel({x: coord.x, y: coord.y});
       const p2: PixelCoordinate = this.mathToPixel({x: coord.x + v.vXn / 15, y: coord.y + v.vYn / 15});
+      const vColor = ColorMap.rgbToHex(this.colorMap.getColor(v.value));
       this.svgg
         .append('line')
         .style('stroke-width', 2)
-        .style('stroke', 'darkred')
+        .style('stroke', vColor)
         .attr('x1', p.left)
         .attr('y1', p.top)
         .attr('x2', p2.left)
-        .attr('y2', p2.top)
+        .attr('y2', p2.top);
 
       this.svgg
         .append('circle')
-        .style('fill', 'darkred')
+        .style('fill', vColor)
         .attr('r', 4)
         .attr('cx', p.left)
         .attr('cy', p.top);
     });
-
-    // for (let x = 0; x < 10; x+=0.1) {
-    //   let c: Color = this.colorMap.getColor(x);
-    //   console.log(x.toFixed(1) + ', r: ' + c.r + ', g: ' + c.g + ', b: ' + c.b);
-    // }
+    // Coordinate System
+    const xAxis1: PixelCoordinate = this.mathToPixel({x: this.DIM.xMin, y: 0});
+    const xAxis2: PixelCoordinate = this.mathToPixel({x: this.DIM.xMax, y: 0});
+    const yAxis1: PixelCoordinate = this.mathToPixel({x: 0, y: this.DIM.yMin});
+    const yAxis2: PixelCoordinate = this.mathToPixel({x: 0, y: this.DIM.yMax});
+    const origin: PixelCoordinate = this.mathToPixel({x: 0, y: 0});
+    const texts = [
+      {hAnchor: 'middle', vAnchor: 'middle', x: origin.left, y: origin.top, text: `(0,0)`},
+      {hAnchor: 'start', vAnchor: 'middle', x: xAxis1.left + 10, y: xAxis1.top, text: `(${roundByMaxDigits(this.DIM.xMin, 100)},0)`},
+      {hAnchor: 'end', vAnchor: 'middle', x: xAxis2.left - 10, y: xAxis2.top, text: `(${roundByMaxDigits(this.DIM.xMax, 100)},0)`},
+      {hAnchor: 'middle', vAnchor: 'ideographic', x: yAxis1.left, y: yAxis1.top - 10, text: `(0,${roundByMaxDigits(this.DIM.yMin, 100)})`},
+      {hAnchor: 'middle', vAnchor: 'hanging', x: yAxis2.left, y: yAxis2.top + 10, text: `(0,${roundByMaxDigits(this.DIM.yMax, 100)})`}
+    ];
+    this.svgg
+      .append('line')
+      .style('stroke-width', 3)
+      .style('stroke', 'darkblue')
+      .attr('x1', xAxis1.left)
+      .attr('y1', xAxis1.top)
+      .attr('x2', xAxis2.left)
+      .attr('y2', xAxis2.top);
+    this.svgg
+      .append('line')
+      .style('stroke-width', 3)
+      .style('stroke', 'darkblue')
+      .attr('x1', yAxis1.left)
+      .attr('y1', yAxis1.top)
+      .attr('x2', yAxis2.left)
+      .attr('y2', yAxis2.top);
+    this.svgg.selectAll('text.text')
+      .data(texts)
+      .enter()
+      .append('text')
+      .classed('text', true)
+      .style('text-anchor', d => d.hAnchor)
+      .style('alignment-baseline', d => d.vAnchor)
+      .attr('font-size', 36)
+      .attr('x', d => d.x)
+      .attr('y', d => d.y)
+      .text(d => d.text);
 
     timer(0).subscribe(() => {
       this.calcLicByLength(30);

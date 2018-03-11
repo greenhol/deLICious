@@ -24,13 +24,23 @@ type ColorEvalFunction = (value: number, firstColor: Color, secondColor: Color, 
 
 export class ColorMap {
 
-    private static hexToRgb(hex: string): Color | null {
+    public static hexToRgb(hex: string): Color | null {
         var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
             r: parseInt(result[1], 16),
             g: parseInt(result[2], 16),
             b: parseInt(result[3], 16)
         } : null;
+    }
+
+    public static rgbToHex(rgb: Color): string {
+        const r = rgb.r.toString(16);
+        const g = rgb.g.toString(16);
+        const b = rgb.b.toString(16);
+        return "#" +
+            (r.length == 1 ? "0" + r : r) +
+            (g.length == 1 ? "0" + g : g) +
+            (b.length == 1 ? "0" + b : b);
     }
 
     private _config: ColorMapConfig;

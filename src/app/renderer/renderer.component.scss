@@ -10,10 +10,19 @@
 
 .vectorFieldSvgArea {
     position: absolute;
-    border: 5px dotted white;
+    border: 5px dotted darkblue;
 }
 
 .outputCanvasArea {
     position: absolute;
     border: solid black;
+}
+
+svg /deep/ {
+    .text {
+        stroke-width: 1;
+        stroke: white;
+        fill: darkblue;
+        font-weight: bold;
+    }
 }
