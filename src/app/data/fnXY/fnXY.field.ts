@@ -11,15 +11,14 @@ export class FnXYField extends Field {
             value: 1
         };
 
-        v.vX = Math.sin(coord.x*coord.x*Math.PI);
-        v.vY = Math.sin(coord.y*coord.y*Math.PI);
+        v.vX = Math.cos(coord.y*coord.y/2)*coord.y;
+        v.vY = -Math.cos(coord.x*coord.x/2)*coord.x;
         
-        // Rotate for Whatever
-        v = {vX: -v.vY, vXn: 1, vY: v.vX, vYn: 0, value: 1};
+        const realValue = Math.sqrt(v.vX * v.vX + v.vY * v.vY);
+        v.value = Math.sin(coord.x*coord.x/2) + Math.sin(coord.y*coord.y/2);
 
-        v.value = Math.sqrt(v.vX * v.vX + v.vY * v.vY);
-        v.vXn = v.vX / v.value;
-        v.vYn = v.vY / v.value;
+        v.vXn = v.vX / realValue;
+        v.vYn = v.vY / realValue;
     
         return v;
     }
