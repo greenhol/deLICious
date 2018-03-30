@@ -14,11 +14,16 @@ export class AppComponent {
 
   public showInput = true;
   public showVectorField = true;
-  public showOutput = true;
+  public showOutput = false;
+  public busy = true;
   public chargeField = new ChargeField();
   public fnXYField = new FnXYField();
 
   public onDownloadButtonClick(): void {
     this.renderer.saveLicCanvas();
+  }
+
+  public onCalcAndDrawClick(): void {
+    this.renderer.calcAndDraw(5);
   }
 }

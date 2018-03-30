@@ -63,10 +63,14 @@ export class RendererComponent implements AfterViewInit {
   @Input() public xMin: number = -1;
   @Input() public xMax: number = 1;
   @Input() public yOffset: number = 0;
+
   @Input() public showInput = true;
+  @Output() public showInputChange = new EventEmitter<boolean>();
   @Input() public showVectorField = true;
   @Output() public showVectorFieldChange = new EventEmitter<boolean>();
   @Input() public showOutput = true;
+  @Output() public showOutputChange = new EventEmitter<boolean>();
+  @Output() public busy = new EventEmitter<boolean>();
 
   @HostListener('click', ['$event']) public onClick(e: PointerEvent) {
     
@@ -174,7 +178,10 @@ export class RendererComponent implements AfterViewInit {
     this.outputCanvasArea.nativeElement.style.left = this.DIM.bgMargin + 'px';
     this.outputCanvasArea.nativeElement.style.top = this.DIM.bgMargin + 'px';
     this.outputCanvasArea.nativeElement.style.borderWidth = this.DIM.outputBorderSize + 'px';
-    this.drawInit();
+    timer(0).subscribe(() => {
+      this.drawInit();
+      this.busy.emit(false);
+    })
   }
 
   public saveLicCanvas(): void {
@@ -183,6 +190,20 @@ export class RendererComponent implements AfterViewInit {
       console.info('Saving as: ' + filename);
       saveAs(blob, filename);
     });
+  }
+
+  public calcAndDraw(l: number) {
+    this.setShowInput(true);
+    this.setShowVectorField(true);
+    this.setShowOutput(false);
+    this.busy.emit(true);
+    timer(0).subscribe(() => {
+      this.calcLicByLength(l);
+      this.drawCanvas(this.outputCanvasArea, this.licData);
+      this.setShowVectorField(false);
+      this.setShowOutput(true);
+      this.busy.emit(false);
+    })
   }
 
   private mathToPixel(coord: MathCoordinate): PixelCoordinate {
@@ -197,6 +218,21 @@ export class RendererComponent implements AfterViewInit {
       x: this.DIM.mathPixelRatio * coord.left + this.DIM.xMin,
       y: this.DIM.yMax - this.DIM.mathPixelRatio * coord.top
     }
+  }
+
+  private setShowInput(value: boolean) {
+    this.showInput = value;
+    this.showInputChange.emit(value);
+  }
+
+  private setShowVectorField(value: boolean) {
+    this.showVectorField = value;
+    this.showVectorFieldChange.emit(value);
+  }
+
+  private setShowOutput(value: boolean) {
+    this.showOutput = value;
+    this.showOutputChange.emit(value);
   }
 
   private drawInit(): void {
@@ -294,13 +330,6 @@ export class RendererComponent implements AfterViewInit {
       .attr('x', d => d.x)
       .attr('y', d => d.y)
       .text(d => d.text);
-
-    timer(0).subscribe(() => {
-      this.calcLicByLength(30);
-      this.drawCanvas(this.outputCanvasArea, this.licData);
-      this.showVectorField = false;
-      this.showVectorFieldChange.emit(this.showVectorField);
-    });
   }
 
   private calcLicByPixel(l: number) {

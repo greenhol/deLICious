@@ -1,15 +1,21 @@
 <div class="optionsArea">
-    <div class="button" (click)="onDownloadButtonClick()">Download</div>
-    <div><input type="checkbox" [checked]="showInput" (change)="showInput = !showInput" />Show Input</div>
-    <div><input type="checkbox" [checked]="showVectorField" (change)="showVectorField = !showVectorField" />Show Vector Field</div>
-    <div><input type="checkbox" [checked]="showOutput" (change)="showOutput = !showOutput" />Show Output</div>
+    <div class="busy-indicator" [class.busy-indicator--busy]="busy"></div>    
+    <div class="button" (click)="onCalcAndDrawClick()">Calulate and Draw</div>
 </div>
 <lic-renderer class="renderer"
-              [field]="fnXYField"
-              [showInput]="showInput"
-              [(showVectorField)]="showVectorField"
-              [showOutput]="showOutput"
-              [xMin]="-8"
-              [xMax]="16"
-              [yOffset]="2">
+    [field]="fnXYField"
+    [(showInput)]="showInput"
+    [(showVectorField)]="showVectorField"
+    [(showOutput)]="showOutput"
+    [xMin]="-8"
+    [xMax]="16"
+    [yOffset]="2"
+    (busy)="busy = $event">
 </lic-renderer>
+<div class="optionsArea">
+    <div class="checkbox"><input type="checkbox" [checked]="showInput" (change)="showInput = !showInput" />Show Input</div>
+    <div class="checkbox"><input type="checkbox" [checked]="showVectorField" (change)="showVectorField = !showVectorField" />Show Vector Field</div>
+    <div class="checkbox"><input type="checkbox" [checked]="showOutput" (change)="showOutput = !showOutput" />Show Output</div>
+    <div *ngIf="showOutput" class="button" (click)="onDownloadButtonClick()">Download Output</div>    
+</div>
+    

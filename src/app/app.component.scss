@@ -7,17 +7,30 @@
     display: flex;
     position: relative;   
     flex-direction: row;
-    margin-bottom: 8px;
-
-    div {
-        margin: auto 8px;
-    }
+    height: 30px;
+    margin: 8px 0;
 
     .button {
+        margin: auto 4px;        
         background-color: lightgray;
         border: 1px solid black;
         text-align: center;
         padding: 5px 20px;
+    }
+
+    .checkbox {
+        margin: auto 8px;        
+    }
+
+    .busy-indicator {
+        width: 15px;
+        height: 30px;
+        background-color: green;
+        border: 1px solid black;
+    }
+
+    .busy-indicator--busy {
+        background-color: red;
     }
 }
 
