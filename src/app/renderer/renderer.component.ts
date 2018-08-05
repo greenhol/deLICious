@@ -1,7 +1,7 @@
 import { ElementRef, ViewChild, Input, Output, EventEmitter, Component, AfterViewInit, RenderComponentType, HostListener } from '@angular/core';
 import { D3Service, D3, Selection } from 'd3-ng2-service';
 import { saveAs } from 'file-saver';
-import { timer } from 'rxjs/observable/timer';
+import { timer } from 'rxjs';
 import { MathCoordinate, Vector, Field } from './../data/field';
 import { ColorMap, Color, ColorEvalType } from './../data/color-map';
 // import { NOISE } from '../data/_noise';
